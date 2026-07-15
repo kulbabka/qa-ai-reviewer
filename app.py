@@ -125,6 +125,26 @@ def render_load_last_result(project_name: str, suffix: str, widget_key: str) -> 
     return None
 
 
+def get_quick_notes_path(project_name: str) -> Path:
+    return Path("outputs") / project_name / "quick_notes.json"
+
+
+def load_quick_notes(project_name: str) -> List[Dict]:
+    path = get_quick_notes_path(project_name)
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+
+def save_quick_notes(project_name: str, notes: List[Dict]) -> None:
+    path = get_quick_notes_path(project_name)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 # ── Render helpers ───────────────────────────────────────────────
 
 def render_finding(finding: Dict, index: int) -> None:
@@ -543,6 +563,7 @@ defaults = {
     "screen_doc_results": [],
     # Quick Notes
     "quick_notes_list": [],
+    "quick_notes_project": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -1146,10 +1167,16 @@ with tab_notes:
         "<b>When to use</b> you need to capture a finding right now — no AI call, no waiting "
         "on network/API latency. Good for live sessions when every second counts.<br>"
         "<b>How it works</b> fill in the structured fields → Add note → copy individual notes "
-        "or the full list from the code blocks below (hover for the copy icon)."
+        "or the full list from the code blocks below (hover for the copy icon). "
+        "Notes are saved to disk automatically, per project."
         "</div>",
         unsafe_allow_html=True,
     )
+
+    # Load this project's notes from disk the first time we see it (or on project switch)
+    if st.session_state.quick_notes_project != selected_project:
+        st.session_state.quick_notes_list = load_quick_notes(selected_project)
+        st.session_state.quick_notes_project = selected_project
 
     with st.form("quick_note_form", clear_on_submit=True):
         title = st.text_input(
@@ -1184,18 +1211,21 @@ with tab_notes:
                 "actual": actual.strip(),
                 "extra_notes": extra_notes.strip(),
             })
-            st.success(f"Added: {title.strip()}")
+            save_quick_notes(selected_project, st.session_state.quick_notes_list)
+            st.success(f"Added and saved: {title.strip()}")
 
     notes = st.session_state.quick_notes_list
 
     if notes:
         st.divider()
         st.subheader(f"Notes ({len(notes)})")
+        st.caption(f"Auto-saved to `{get_quick_notes_path(selected_project)}`")
 
         clear_col, _ = st.columns([1, 4])
         with clear_col:
             if st.button("Clear all", use_container_width=True):
                 st.session_state.quick_notes_list = []
+                save_quick_notes(selected_project, [])
                 st.rerun()
 
         def _format_note(n: Dict, idx: int) -> str:
