@@ -131,6 +131,7 @@ def _build_first_pass_prompt(
     feature_description: str,
     ui_observations: str,
     documentation_context: str,
+    rules: str = "",
 ) -> str:
     types_block = "\n".join(f"- {t}" for t in UX_FINDING_TYPES)
 
@@ -138,6 +139,12 @@ def _build_first_pass_prompt(
         f"DOCUMENTATION\n{documentation_context}"
         if documentation_context.strip()
         else "DOCUMENTATION\nNot provided."
+    )
+
+    rules_section = (
+        f"REVIEW RULES / PRIORITIES\n{rules}"
+        if rules.strip()
+        else "REVIEW RULES / PRIORITIES\nNot provided — use default priority order (silent failures first)."
     )
 
     return f"""
@@ -199,6 +206,14 @@ Documentation-specific guidance:
   what is visible / inferable from the UI
 - Do NOT simply restate what the documentation says — find the UX gap
 
+Review rules guidance:
+- If REVIEW RULES / PRIORITIES below lists a priority order, findings matching
+  higher-priority categories should be surfaced first and covered more
+  thoroughly than lower-priority ones.
+- If it lists categories to deprioritize, do not raise findings that fall
+  purely into those categories unless they are also a high/critical severity
+  issue of another kind.
+
 Confidence:
 - high   → directly visible in observations or explicitly documented
 - medium → reasonable inference from observations + context
@@ -208,6 +223,9 @@ Volume:
 - Target 5–10 focused findings.
 - Prefer fewer high-confidence findings.
 - Do not duplicate findings with the same root issue.
+
+---
+{rules_section}
 
 ---
 PRODUCT CONTEXT
@@ -236,6 +254,7 @@ def _build_second_pass_prompt(
     ui_observations: str,
     documentation_context: str,
     first_pass_result: Dict[str, Any],
+    rules: str = "",
 ) -> str:
     types_block = "\n".join(f"- {t}" for t in UX_FINDING_TYPES)
     first_json = json.dumps(first_pass_result, ensure_ascii=False, indent=2)
@@ -244,6 +263,12 @@ def _build_second_pass_prompt(
         f"DOCUMENTATION\n{documentation_context}"
         if documentation_context.strip()
         else "DOCUMENTATION\nNot provided."
+    )
+
+    rules_section = (
+        f"REVIEW RULES / PRIORITIES\n{rules}"
+        if rules.strip()
+        else "REVIEW RULES / PRIORITIES\nNot provided."
     )
 
     return f"""
@@ -264,6 +289,9 @@ TASKS
 6. If documentation was provided, verify that findings correctly distinguish
    between "behavior not in the UI" vs "behavior not documented anywhere" —
    these have different severities and suggestions.
+7. Re-check findings against REVIEW RULES / PRIORITIES below — drop findings
+   that only match a deprioritized category, and make sure the surviving
+   findings emphasize the prioritized categories.
 
 ---
 CRITICAL PRESERVATION
@@ -327,6 +355,8 @@ OBSERVED UI FACTS
 
 {doc_section}
 
+{rules_section}
+
 FIRST PASS OUTPUT
 {first_json}
 """.strip()
@@ -364,6 +394,7 @@ def review_ux_feature(
     feature_description: str,
     ui_observations: str,
     documentation_context: str = "",
+    rules: str = "",
 ) -> Dict[str, Any]:
     """
     Run a two-pass UX review of a feature.
@@ -376,6 +407,8 @@ def review_ux_feature(
         ui_observations:       Newline-separated list of observed UI facts.
         documentation_context: Plain text fetched from documentation URLs,
                                pre-formatted by url_fetcher.results_to_context().
+        rules:                 Content of rules.md for this project — priority
+                               order and categories to deprioritize.
 
     Returns:
         {"findings": [...], "overall_assessment": {...}}
@@ -385,7 +418,7 @@ def review_ux_feature(
         model,
         _build_first_pass_prompt(
             product_context, feature_description,
-            ui_observations, documentation_context,
+            ui_observations, documentation_context, rules,
         ),
     )
 
@@ -394,7 +427,7 @@ def review_ux_feature(
         model,
         _build_second_pass_prompt(
             product_context, feature_description,
-            ui_observations, documentation_context, first,
+            ui_observations, documentation_context, first, rules,
         ),
     )
 

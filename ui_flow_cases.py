@@ -126,11 +126,29 @@ def _build_prompt(
     project_context: str,
     task_text: str,
     ui_observations: str,
+    glossary: str = "",
+    rules: str = "",
+    product_context: str = "",
 ) -> str:
     task_section = (
         f"TASK / REQUIREMENT TEXT:\n{task_text}"
         if task_text
         else "TASK / REQUIREMENT TEXT:\nNot provided."
+    )
+    glossary_section = (
+        f"GLOSSARY (use these terms consistently):\n{glossary}"
+        if glossary.strip()
+        else "GLOSSARY:\nNot provided."
+    )
+    rules_section = (
+        f"REVIEW RULES / PRIORITIES:\n{rules}"
+        if rules.strip()
+        else "REVIEW RULES / PRIORITIES:\nNot provided — use default judgment on priority."
+    )
+    product_context_section = (
+        f"PRODUCT CONTEXT:\n{product_context}"
+        if product_context.strip()
+        else "PRODUCT CONTEXT:\nNot provided."
     )
 
     return f"""
@@ -191,6 +209,21 @@ PROJECT CONTEXT:
 
 ---
 
+{product_context_section}
+
+---
+
+{glossary_section}
+
+---
+
+{rules_section}
+Use these rules to decide which scenarios to prioritize and which to skip,
+the same way you would use them to decide what matters most in a live
+testing session.
+
+---
+
 {task_section}
 
 ---
@@ -214,6 +247,9 @@ def generate_ui_flow_test_cases(
     project_context: str,
     task_text: str,
     ui_observations: str,
+    glossary: str = "",
+    rules: str = "",
+    product_context: str = "",
 ) -> Dict[str, Any]:
     """
     Generate structured high-level test cases from UI observations.
@@ -224,6 +260,9 @@ def generate_ui_flow_test_cases(
         project_context: Content of the project's context.md.
         task_text:       Optional task / requirement text for additional context.
         ui_observations: Newline-separated list of observed UI facts.
+        glossary:        Content of the project's glossary.md (optional).
+        rules:           Content of the project's rules.md (optional).
+        product_context: Content of the project's product_context.md (optional).
 
     Returns:
         {
@@ -237,6 +276,9 @@ def generate_ui_flow_test_cases(
         project_context=project_context,
         task_text=task_text,
         ui_observations=ui_observations,
+        glossary=glossary,
+        rules=rules,
+        product_context=product_context,
     )
 
     response = client.responses.create(
