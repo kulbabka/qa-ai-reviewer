@@ -1228,14 +1228,11 @@ with tab_notes:
     if notes:
         st.divider()
         st.subheader(f"Notes ({len(notes)})")
-        st.caption(f"Auto-saved to `{get_quick_notes_path(selected_project)}`")
-
-        clear_col, _ = st.columns([1, 4])
-        with clear_col:
-            if st.button("Clear all", use_container_width=True):
-                st.session_state.quick_notes_list = []
-                save_quick_notes(selected_project, [])
-                st.rerun()
+        st.caption(
+            f"Saved to `{get_quick_notes_path(selected_project)}` for this session. "
+            "On Streamlit Community Cloud this storage is temporary — it's wiped on "
+            "reboot/redeploy, so download a backup below if you want to keep these."
+        )
 
         def _format_note(n: Dict, idx: int) -> str:
             lines = [f"{idx}. [{n['severity']}] {n['title']}"]
@@ -1252,6 +1249,30 @@ with tab_notes:
             if n["extra_notes"]:
                 lines.append(f"Notes: {n['extra_notes']}")
             return "\n".join(lines)
+
+        clear_col, dl_json_col, dl_txt_col = st.columns(3)
+        with clear_col:
+            if st.button("Clear all", use_container_width=True):
+                st.session_state.quick_notes_list = []
+                save_quick_notes(selected_project, [])
+                st.rerun()
+        with dl_json_col:
+            st.download_button(
+                "Download as JSON",
+                data=json.dumps(notes, ensure_ascii=False, indent=2),
+                file_name=f"{selected_project}_quick_notes.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+        with dl_txt_col:
+            all_text_export = "\n\n".join(_format_note(n, i) for i, n in enumerate(notes, 1))
+            st.download_button(
+                "Download as text",
+                data=all_text_export,
+                file_name=f"{selected_project}_quick_notes.txt",
+                mime="text/plain",
+                use_container_width=True,
+            )
 
         for idx, n in enumerate(notes, 1):
             is_editing = st.session_state.quick_notes_edit_idx == idx - 1
