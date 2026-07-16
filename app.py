@@ -565,6 +565,7 @@ defaults = {
     # Quick Notes
     "quick_notes_list": [],
     "quick_notes_project": None,
+    "quick_notes_edit_idx": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -1246,9 +1247,74 @@ with tab_notes:
             return "\n".join(lines)
 
         for idx, n in enumerate(notes, 1):
+            is_editing = st.session_state.quick_notes_edit_idx == idx - 1
             with st.container(border=True):
-                st.markdown(f"**{idx}. [{n['severity']}] {n['title']}**")
-                st.code(_format_note(n, idx), language="text")
+                if is_editing:
+                    st.markdown(f"**Editing note {idx}**")
+                    with st.form(f"edit_note_form_{idx - 1}"):
+                        e_title = st.text_input("Title", value=n["title"])
+                        e_sev_col, e_env_col = st.columns(2)
+                        with e_sev_col:
+                            e_severity = st.selectbox(
+                                "Severity",
+                                ["Critical", "High", "Medium", "Low"],
+                                index=["Critical", "High", "Medium", "Low"].index(n["severity"])
+                                if n["severity"] in ["Critical", "High", "Medium", "Low"] else 2,
+                            )
+                        with e_env_col:
+                            e_environment = st.text_input("Environment (optional)", value=n["environment"])
+
+                        e_given = st.text_area("Given (starting state)", value=n["given"], height=70)
+                        e_when = st.text_area("When (action / trigger)", value=n["when"], height=70)
+                        e_then_expected = st.text_area("Then — expected", value=n["then_expected"], height=70)
+                        e_actual = st.text_area("Actual result", value=n["actual"], height=70)
+                        e_extra_notes = st.text_area("Additional notes (optional)", value=n["extra_notes"], height=60)
+
+                        save_col, cancel_col = st.columns(2)
+                        with save_col:
+                            save_clicked = st.form_submit_button(
+                                "Save changes", type="primary", use_container_width=True
+                            )
+                        with cancel_col:
+                            cancel_clicked = st.form_submit_button(
+                                "Cancel", use_container_width=True
+                            )
+
+                    if save_clicked:
+                        if not e_title.strip():
+                            st.warning("Title can't be empty.")
+                        else:
+                            st.session_state.quick_notes_list[idx - 1] = {
+                                "title": e_title.strip(),
+                                "severity": e_severity,
+                                "environment": e_environment.strip(),
+                                "given": e_given.strip(),
+                                "when": e_when.strip(),
+                                "then_expected": e_then_expected.strip(),
+                                "actual": e_actual.strip(),
+                                "extra_notes": e_extra_notes.strip(),
+                            }
+                            save_quick_notes(selected_project, st.session_state.quick_notes_list)
+                            st.session_state.quick_notes_edit_idx = None
+                            st.success(f"Saved: {e_title.strip()}")
+                            st.rerun()
+                    if cancel_clicked:
+                        st.session_state.quick_notes_edit_idx = None
+                        st.rerun()
+                else:
+                    st.markdown(f"**{idx}. [{n['severity']}] {n['title']}**")
+                    st.code(_format_note(n, idx), language="text")
+
+                    edit_col, delete_col = st.columns(2)
+                    with edit_col:
+                        if st.button("Edit", key=f"edit_note_btn_{idx - 1}", use_container_width=True):
+                            st.session_state.quick_notes_edit_idx = idx - 1
+                            st.rerun()
+                    with delete_col:
+                        if st.button("Delete", key=f"delete_note_btn_{idx - 1}", use_container_width=True):
+                            st.session_state.quick_notes_list.pop(idx - 1)
+                            save_quick_notes(selected_project, st.session_state.quick_notes_list)
+                            st.rerun()
 
         with st.expander("Copy all notes as one block", expanded=False):
             all_text = "\n\n".join(_format_note(n, i) for i, n in enumerate(notes, 1))
