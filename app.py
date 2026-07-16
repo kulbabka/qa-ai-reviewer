@@ -16,32 +16,25 @@ from url_fetcher import fetch_urls, results_to_context
 
 load_dotenv()
 
-# All project/output paths are anchored to this file's own directory,
-# not to the current working directory — otherwise "outputs/" and
-# "projects/" can end up created wherever the process happened to be
-# launched from (a different cwd via an IDE run config, a launcher
-# script, Docker, etc.), which is why they can seem to "go missing".
-BASE_DIR = Path(__file__).resolve().parent
-
 
 # ── Project helpers ──────────────────────────────────────────────
 
 def get_project_dirs() -> List[str]:
-    projects_root = BASE_DIR / "projects"
+    projects_root = Path("projects")
     if not projects_root.exists():
         return []
     return sorted([p.name for p in projects_root.iterdir() if p.is_dir()])
 
 
 def get_project_paths(project_name: str) -> Dict[str, Path]:
-    project_root = BASE_DIR / "projects" / project_name
+    project_root = Path("projects") / project_name
     return {
         "root": project_root,
         "context": project_root / "context.md",
         "glossary": project_root / "glossary.md",
         "rules": project_root / "rules.md",
         "stories": project_root / "stories",
-        "output": BASE_DIR / "outputs" / project_name,
+        "output": Path("outputs") / project_name,
     }
 
 
@@ -60,7 +53,7 @@ def load_project_context(project_name: str) -> Dict[str, str]:
 def save_ui_result(
     project_name: str, item_name: str, result: Dict, suffix: str = ""
 ) -> Path:
-    output_dir = BASE_DIR / "outputs" / project_name
+    output_dir = Path("outputs") / project_name
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_name = "".join(
         c if c.isalnum() or c in ("-", "_") else "_" for c in item_name
@@ -74,16 +67,22 @@ def save_ui_result(
 
 
 def list_output_files(project_name: str, suffix: str = "") -> List[Path]:
-    """List saved output JSON files for a project, newest first.
+    """List saved AI-review output JSON files for a project, newest first.
 
     If `suffix` is given (e.g. "_ux", "_ui_flow"), only files whose stem
     ends with that suffix are returned — used to separate Screen Review
     outputs (test cases vs UX findings) from Requirement Review outputs.
+
+    quick_notes.json is always excluded — it's a manual note list, not an
+    AI review result, and would never load successfully here.
     """
-    output_dir = BASE_DIR / "outputs" / project_name
+    output_dir = Path("outputs") / project_name
     if not output_dir.exists():
         return []
-    files = [p for p in output_dir.glob("*.json") if not suffix or p.stem.endswith(suffix)]
+    files = [
+        p for p in output_dir.glob("*.json")
+        if p.name != "quick_notes.json" and (not suffix or p.stem.endswith(suffix))
+    ]
     return sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
 
 
@@ -104,23 +103,21 @@ def render_load_last_result(project_name: str, suffix: str, widget_key: str) -> 
     ]
     with st.expander(f"Load a previous result ({len(files)} saved)", expanded=False):
         st.caption(
-            "Recovers a result saved to disk earlier — useful if the page "
-            "reloaded, the app restarted, or the browser tab was lost."
+            "Pulls a result back from disk — use this if the browser tab reloaded, "
+            "the app restarted, or you're picking up work from an earlier session "
+            "and don't want to re-run the analysis."
         )
-        col_sel, col_btn = st.columns([3, 1])
-        with col_sel:
-            chosen = st.selectbox(
-                "Saved result",
-                display_labels,
-                key=f"{widget_key}_select",
-                label_visibility="collapsed",
-            )
-        with col_btn:
-            load_clicked = st.button(
-                "Load",
-                key=f"{widget_key}_btn",
-                use_container_width=True,
-            )
+        chosen = st.selectbox(
+            "Saved result",
+            display_labels,
+            key=f"{widget_key}_select",
+            label_visibility="collapsed",
+        )
+        load_clicked = st.button(
+            "Load this result",
+            key=f"{widget_key}_btn",
+            use_container_width=True,
+        )
         if load_clicked and chosen:
             idx = display_labels.index(chosen)
             path = files[idx]
@@ -133,7 +130,7 @@ def render_load_last_result(project_name: str, suffix: str, widget_key: str) -> 
 
 
 def get_quick_notes_path(project_name: str) -> Path:
-    return BASE_DIR / "outputs" / project_name / "quick_notes.json"
+    return Path("outputs") / project_name / "quick_notes.json"
 
 
 def load_quick_notes(project_name: str) -> List[Dict]:
@@ -269,7 +266,7 @@ st.set_page_config(page_title="QA Assistant", page_icon=None, layout="wide")
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -278,66 +275,66 @@ html, body, [class*="css"] {
 
 /* ── Layout ── */
 .block-container {
-    padding-top: 2.25rem;
-    padding-bottom: 4rem;
-    max-width: 1280px;
+    padding-top: 1.75rem;
+    padding-bottom: 3rem;
+    max-width: 1200px;
 }
 
 /* ── Headings ── */
 h1 {
-    font-size: 1.875rem !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.015em !important;
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
     color: #0f172a !important;
     margin-bottom: 0 !important;
 }
 h2 {
-    font-size: 1.375rem !important;
+    font-size: 1rem !important;
     font-weight: 600 !important;
-    color: #0f172a !important;
+    color: #1e293b !important;
     letter-spacing: -0.01em !important;
 }
 h3, h4 {
-    font-size: 1.125rem !important;
+    font-size: 0.875rem !important;
     font-weight: 600 !important;
-    color: #1e293b !important;
+    color: #334155 !important;
     letter-spacing: 0 !important;
 }
 
 p, li, .stMarkdown {
-    font-size: 1.0625rem !important;
-    line-height: 1.7 !important;
-    color: #1e293b;
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+    color: #334155;
 }
 
 /* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] {
     background: transparent !important;
-    border-bottom: 2px solid #cbd5e1 !important;
-    gap: 0.25rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    gap: 0 !important;
     padding: 0 !important;
 }
 .stTabs [data-baseweb="tab"] {
-    font-size: 1.0625rem !important;
+    font-size: 0.8125rem !important;
     font-weight: 500 !important;
-    color: #475569 !important;
-    padding: 0.875rem 1.5rem !important;
+    color: #64748b !important;
+    padding: 0.625rem 1rem !important;
     background: transparent !important;
     border: none !important;
-    border-bottom: 3px solid transparent !important;
-    margin-bottom: -2px !important;
+    border-bottom: 2px solid transparent !important;
+    margin-bottom: -1px !important;
     border-radius: 0 !important;
     letter-spacing: 0.01em;
 }
 .stTabs [data-baseweb="tab"]:hover {
-    color: #0f172a !important;
+    color: #1e293b !important;
     background: transparent !important;
 }
 .stTabs [aria-selected="true"] {
     color: #1d4ed8 !important;
     border-bottom-color: #1d4ed8 !important;
     background: transparent !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
 }
 .stTabs [data-baseweb="tab-border"] { display: none !important; }
 .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
@@ -345,22 +342,22 @@ p, li, .stMarkdown {
 /* ── Buttons ── */
 div.stButton > button {
     font-family: 'Inter', sans-serif !important;
-    font-size: 1.0625rem !important;
-    font-weight: 600 !important;
-    height: 3rem !important;
-    padding: 0 1.5rem !important;
-    border-radius: 8px !important;
-    border: 1.5px solid #94a3b8 !important;
-    color: #1e293b !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    height: 2.125rem !important;
+    padding: 0 0.875rem !important;
+    border-radius: 5px !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
     background: #ffffff !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
     letter-spacing: 0.01em;
     transition: all 0.12s ease;
 }
 div.stButton > button:hover {
-    border-color: #64748b !important;
-    background: #f1f5f9 !important;
-    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+    color: #1e293b !important;
 }
 div.stButton > button[kind="primary"],
 div.stButton > button[kind="primary"] p,
@@ -369,13 +366,13 @@ div.stButton > button[kind="primary"] div {
     background: #1d4ed8 !important;
     color: #ffffff !important;
     border-color: #1d4ed8 !important;
-    box-shadow: 0 2px 5px rgba(29,78,216,0.3) !important;
+    box-shadow: 0 1px 3px rgba(29,78,216,0.2) !important;
 }
 div.stButton > button[kind="primary"]:hover,
 div.stButton > button[kind="primary"]:hover p,
 div.stButton > button[kind="primary"]:hover span {
-    background: #1e3a8a !important;
-    border-color: #1e3a8a !important;
+    background: #1e40af !important;
+    border-color: #1e40af !important;
     color: #ffffff !important;
 }
 div.stButton > button[kind="primary"] * { color: #ffffff !important; }
@@ -383,30 +380,29 @@ div.stButton > button[kind="primary"] * { color: #ffffff !important; }
 /* ── Inputs ── */
 textarea, input[type="text"], input[type="number"], input[type="email"] {
     font-family: 'Inter', sans-serif !important;
-    font-size: 1.0625rem !important;
-    border: 1.5px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-    color: #0f172a !important;
-    padding: 0.625rem 0.875rem !important;
+    font-size: 0.875rem !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 5px !important;
+    color: #1e293b !important;
 }
 textarea:focus, input:focus {
-    border-color: #60a5fa !important;
-    box-shadow: 0 0 0 4px rgba(96,165,250,0.25) !important;
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 3px rgba(147,197,253,0.2) !important;
 }
-textarea { line-height: 1.7 !important; }
+textarea { line-height: 1.6 !important; }
 
 /* ── Selectbox ── */
 div[data-baseweb="select"] > div {
-    font-size: 1.0625rem !important;
-    border-radius: 8px !important;
-    border: 1.5px solid #cbd5e1 !important;
+    font-size: 0.875rem !important;
+    border-radius: 5px !important;
+    border: 1px solid #e2e8f0 !important;
     font-family: 'Inter', sans-serif !important;
     background: #ffffff !important;
-    min-height: 3rem !important;
+    min-height: 2.125rem !important;
     cursor: pointer !important;
 }
 div[data-baseweb="select"] > div:hover {
-    border-color: #64748b !important;
+    border-color: #94a3b8 !important;
 }
 div[data-baseweb="select"] input {
     border: none !important;
@@ -416,33 +412,33 @@ div[data-baseweb="select"] input {
 }
 div[data-baseweb="select"] [data-testid="stSelectboxLabel"],
 div[data-baseweb="select"] span {
-    font-size: 1.0625rem !important;
-    color: #0f172a !important;
+    font-size: 0.875rem !important;
+    color: #1e293b !important;
 }
 
 /* Input labels */
 label[data-testid="stWidgetLabel"] p {
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    color: #334155 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
 }
 
 /* ── Metric ── */
 [data-testid="stMetric"] {
-    background: #f1f5f9 !important;
-    border: 1.5px solid #cbd5e1 !important;
-    border-radius: 10px !important;
-    padding: 1.25rem 1.5rem !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 0.875rem 1.125rem !important;
 }
 [data-testid="stMetricLabel"] p {
-    font-size: 0.8125rem !important;
-    font-weight: 700 !important;
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.06em !important;
-    color: #475569 !important;
+    color: #64748b !important;
 }
 [data-testid="stMetricValue"] {
-    font-size: 2.125rem !important;
+    font-size: 1.5rem !important;
     font-weight: 700 !important;
     color: #0f172a !important;
     letter-spacing: -0.02em !important;
@@ -450,77 +446,77 @@ label[data-testid="stWidgetLabel"] p {
 
 /* ── Containers ── */
 [data-testid="stVerticalBlockBorderWrapper"] > div {
-    border: 1.5px solid #cbd5e1 !important;
-    border-radius: 10px !important;
-    padding: 1.375rem !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 0.875rem !important;
     background: #ffffff !important;
 }
 
 /* ── Alerts ── */
 div[data-testid="stAlert"] {
-    border-radius: 8px !important;
-    font-size: 1rem !important;
-    padding: 1rem 1.25rem !important;
-    border-width: 1.5px !important;
+    border-radius: 5px !important;
+    font-size: 0.8125rem !important;
+    padding: 0.625rem 0.875rem !important;
+    border-width: 1px !important;
 }
-div[data-testid="stAlert"] p { font-size: 1rem !important; }
+div[data-testid="stAlert"] p { font-size: 0.8125rem !important; }
 
 /* ── Caption ── */
 [data-testid="stCaptionContainer"] p {
-    font-size: 0.9375rem !important;
-    color: #64748b !important;
+    font-size: 0.75rem !important;
+    color: #94a3b8 !important;
 }
 
 /* ── Expander ── */
 details summary {
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    color: #334155 !important;
-    padding: 0.75rem 0 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
+    padding: 0.5rem 0 !important;
 }
 details {
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 8px !important;
-    padding: 0 1rem !important;
-    background: #f8fafc !important;
+    border: 1px solid #f1f5f9 !important;
+    border-radius: 5px !important;
+    padding: 0 0.75rem !important;
+    background: #fafafa !important;
 }
 
 /* ── Divider ── */
 hr {
     border: none !important;
-    border-top: 1.5px solid #e2e8f0 !important;
-    margin: 1.75rem 0 !important;
+    border-top: 1px solid #f1f5f9 !important;
+    margin: 1.25rem 0 !important;
 }
 
 /* ── Code blocks ── */
 pre {
-    border-radius: 8px !important;
-    font-size: 1rem !important;
-    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 5px !important;
+    font-size: 0.8125rem !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
 /* ── Success / info ── */
-.stSuccess { border-left: 4px solid #10b981 !important; }
-.stInfo    { border-left: 4px solid #3b82f6 !important; }
-.stWarning { border-left: 4px solid #f59e0b !important; }
-.stError   { border-left: 4px solid #ef4444 !important; }
+.stSuccess { border-left: 3px solid #10b981 !important; }
+.stInfo    { border-left: 3px solid #3b82f6 !important; }
+.stWarning { border-left: 3px solid #f59e0b !important; }
+.stError   { border-left: 3px solid #ef4444 !important; }
 
 /* ── Mode description ── */
 .mode-desc {
-    padding: 1.125rem 1.375rem;
-    background: #f1f5f9;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 8px;
-    margin-bottom: 1.75rem;
-    font-size: 1rem;
-    color: #334155;
-    line-height: 1.7;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    margin-bottom: 1.25rem;
+    font-size: 0.8125rem;
+    color: #475569;
+    line-height: 1.6;
 }
 
 /* ── Spinner ── */
 [data-testid="stSpinner"] p {
-    font-size: 1rem !important;
-    color: #475569 !important;
+    font-size: 0.8125rem !important;
+    color: #64748b !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -572,7 +568,6 @@ defaults = {
     # Quick Notes
     "quick_notes_list": [],
     "quick_notes_project": None,
-    "quick_notes_edit_idx": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -1187,6 +1182,127 @@ with tab_notes:
         st.session_state.quick_notes_list = load_quick_notes(selected_project)
         st.session_state.quick_notes_project = selected_project
 
+    # ── Import / Export ─────────────────────────────────────────
+    exp_col, imp_col = st.columns(2)
+
+    with exp_col:
+        if st.session_state.quick_notes_list:
+            st.download_button(
+                "Download notes (JSON)",
+                data=json.dumps(st.session_state.quick_notes_list, ensure_ascii=False, indent=2),
+                file_name=f"{selected_project}_quick_notes.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+        else:
+            st.button("Download notes (JSON)", disabled=True, use_container_width=True,
+                       help="Add at least one note first.")
+
+    with imp_col:
+        import_open = st.button("Import notes ↓", use_container_width=True, key="open_import_notes")
+
+    if import_open:
+        st.session_state["_show_import_notes"] = not st.session_state.get("_show_import_notes", False)
+
+    if st.session_state.get("_show_import_notes", False):
+        with st.container(border=True):
+            st.caption(
+                "Bring in notes prepared earlier — e.g. a findings library you drafted "
+                "with Claude before the call. Paste JSON (a list of note objects) or "
+                "plain text (one Given/When/Then-style block per note, separated by "
+                "blank lines)."
+            )
+            import_mode = st.radio(
+                "Import as",
+                ["JSON", "Plain text"],
+                horizontal=True,
+                key="import_notes_mode",
+                label_visibility="collapsed",
+            )
+            uploaded_notes_file = st.file_uploader(
+                "Or upload a .json/.txt file instead",
+                type=["json", "txt", "md"],
+                key="import_notes_file",
+            )
+            import_text = st.text_area(
+                "Paste content",
+                height=180,
+                key="import_notes_text",
+                placeholder=(
+                    '[{"title": "...", "severity": "High", "given": "...", "when": "...", '
+                    '"then_expected": "...", "actual": "...", "environment": "", "extra_notes": ""}]'
+                    if import_mode == "JSON" else
+                    "Title: Sync status shows Connected during active failure\n"
+                    "Severity: High\n"
+                    "Given: Broker is connected and syncing normally\n"
+                    "When: Broker connection drops mid-sync\n"
+                    "Then (expected): UI shows a clear 'Sync failed' state\n"
+                    "Actual: Status still shows green 'Connected'\n"
+                    "\n"
+                    "Title: Next note...\n..."
+                ),
+            )
+
+            do_import = st.button("Add these to my notes", type="primary", use_container_width=True)
+
+            if do_import:
+                raw = (uploaded_notes_file.read().decode("utf-8", errors="ignore")
+                       if uploaded_notes_file is not None else import_text)
+                if not raw.strip():
+                    st.warning("Paste some content or upload a file first.")
+                else:
+                    try:
+                        if import_mode == "JSON":
+                            parsed = json.loads(raw)
+                            if isinstance(parsed, dict):
+                                parsed = [parsed]
+                            new_notes = []
+                            for item in parsed:
+                                new_notes.append({
+                                    "title": str(item.get("title", "Untitled")),
+                                    "severity": str(item.get("severity", "Medium")),
+                                    "environment": str(item.get("environment", "")),
+                                    "given": str(item.get("given", "")),
+                                    "when": str(item.get("when", "")),
+                                    "then_expected": str(item.get("then_expected", item.get("then", ""))),
+                                    "actual": str(item.get("actual", "")),
+                                    "extra_notes": str(item.get("extra_notes", item.get("notes", ""))),
+                                })
+                        else:
+                            # Plain text: split into blocks on blank lines, parse "Label: value" lines
+                            field_map = {
+                                "title": "title", "severity": "severity", "environment": "environment",
+                                "given": "given", "when": "when",
+                                "then (expected)": "then_expected", "then": "then_expected",
+                                "actual": "actual", "notes": "extra_notes",
+                            }
+                            blocks = [b for b in raw.split("\n\n") if b.strip()]
+                            new_notes = []
+                            for block in blocks:
+                                note = {"title": "Untitled", "severity": "Medium", "environment": "",
+                                        "given": "", "when": "", "then_expected": "", "actual": "", "extra_notes": ""}
+                                for line in block.splitlines():
+                                    if ":" not in line:
+                                        continue
+                                    label, _, value = line.partition(":")
+                                    key = field_map.get(label.strip().lower())
+                                    if key:
+                                        note[key] = value.strip()
+                                if note["title"] != "Untitled" or note["given"] or note["when"]:
+                                    new_notes.append(note)
+                        if not new_notes:
+                            st.warning("Nothing recognizable to import — check the format.")
+                        else:
+                            st.session_state.quick_notes_list.extend(new_notes)
+                            save_quick_notes(selected_project, st.session_state.quick_notes_list)
+                            st.session_state["_show_import_notes"] = False
+                            st.success(f"Imported {len(new_notes)} note(s).")
+                            st.rerun()
+                    except json.JSONDecodeError as exc:
+                        st.error(f"Couldn't parse JSON: {exc}")
+                    except Exception as exc:
+                        st.error(f"Import failed: {exc}")
+
     with st.form("quick_note_form", clear_on_submit=True):
         title = st.text_input(
             "Title",
@@ -1228,11 +1344,14 @@ with tab_notes:
     if notes:
         st.divider()
         st.subheader(f"Notes ({len(notes)})")
-        st.caption(
-            f"Saved to `{get_quick_notes_path(selected_project)}` for this session. "
-            "On Streamlit Community Cloud this storage is temporary — it's wiped on "
-            "reboot/redeploy, so download a backup below if you want to keep these."
-        )
+        st.caption(f"Auto-saved to `{get_quick_notes_path(selected_project)}`")
+
+        clear_col, _ = st.columns([1, 4])
+        with clear_col:
+            if st.button("Clear all", use_container_width=True):
+                st.session_state.quick_notes_list = []
+                save_quick_notes(selected_project, [])
+                st.rerun()
 
         def _format_note(n: Dict, idx: int) -> str:
             lines = [f"{idx}. [{n['severity']}] {n['title']}"]
@@ -1250,99 +1369,10 @@ with tab_notes:
                 lines.append(f"Notes: {n['extra_notes']}")
             return "\n".join(lines)
 
-        clear_col, dl_json_col, dl_txt_col = st.columns(3)
-        with clear_col:
-            if st.button("Clear all", use_container_width=True):
-                st.session_state.quick_notes_list = []
-                save_quick_notes(selected_project, [])
-                st.rerun()
-        with dl_json_col:
-            st.download_button(
-                "Download as JSON",
-                data=json.dumps(notes, ensure_ascii=False, indent=2),
-                file_name=f"{selected_project}_quick_notes.json",
-                mime="application/json",
-                use_container_width=True,
-            )
-        with dl_txt_col:
-            all_text_export = "\n\n".join(_format_note(n, i) for i, n in enumerate(notes, 1))
-            st.download_button(
-                "Download as text",
-                data=all_text_export,
-                file_name=f"{selected_project}_quick_notes.txt",
-                mime="text/plain",
-                use_container_width=True,
-            )
-
         for idx, n in enumerate(notes, 1):
-            is_editing = st.session_state.quick_notes_edit_idx == idx - 1
             with st.container(border=True):
-                if is_editing:
-                    st.markdown(f"**Editing note {idx}**")
-                    with st.form(f"edit_note_form_{idx - 1}"):
-                        e_title = st.text_input("Title", value=n["title"])
-                        e_sev_col, e_env_col = st.columns(2)
-                        with e_sev_col:
-                            e_severity = st.selectbox(
-                                "Severity",
-                                ["Critical", "High", "Medium", "Low"],
-                                index=["Critical", "High", "Medium", "Low"].index(n["severity"])
-                                if n["severity"] in ["Critical", "High", "Medium", "Low"] else 2,
-                            )
-                        with e_env_col:
-                            e_environment = st.text_input("Environment (optional)", value=n["environment"])
-
-                        e_given = st.text_area("Given (starting state)", value=n["given"], height=70)
-                        e_when = st.text_area("When (action / trigger)", value=n["when"], height=70)
-                        e_then_expected = st.text_area("Then — expected", value=n["then_expected"], height=70)
-                        e_actual = st.text_area("Actual result", value=n["actual"], height=70)
-                        e_extra_notes = st.text_area("Additional notes (optional)", value=n["extra_notes"], height=60)
-
-                        save_col, cancel_col = st.columns(2)
-                        with save_col:
-                            save_clicked = st.form_submit_button(
-                                "Save changes", type="primary", use_container_width=True
-                            )
-                        with cancel_col:
-                            cancel_clicked = st.form_submit_button(
-                                "Cancel", use_container_width=True
-                            )
-
-                    if save_clicked:
-                        if not e_title.strip():
-                            st.warning("Title can't be empty.")
-                        else:
-                            st.session_state.quick_notes_list[idx - 1] = {
-                                "title": e_title.strip(),
-                                "severity": e_severity,
-                                "environment": e_environment.strip(),
-                                "given": e_given.strip(),
-                                "when": e_when.strip(),
-                                "then_expected": e_then_expected.strip(),
-                                "actual": e_actual.strip(),
-                                "extra_notes": e_extra_notes.strip(),
-                            }
-                            save_quick_notes(selected_project, st.session_state.quick_notes_list)
-                            st.session_state.quick_notes_edit_idx = None
-                            st.success(f"Saved: {e_title.strip()}")
-                            st.rerun()
-                    if cancel_clicked:
-                        st.session_state.quick_notes_edit_idx = None
-                        st.rerun()
-                else:
-                    st.markdown(f"**{idx}. [{n['severity']}] {n['title']}**")
-                    st.code(_format_note(n, idx), language="text")
-
-                    edit_col, delete_col = st.columns(2)
-                    with edit_col:
-                        if st.button("Edit", key=f"edit_note_btn_{idx - 1}", use_container_width=True):
-                            st.session_state.quick_notes_edit_idx = idx - 1
-                            st.rerun()
-                    with delete_col:
-                        if st.button("Delete", key=f"delete_note_btn_{idx - 1}", use_container_width=True):
-                            st.session_state.quick_notes_list.pop(idx - 1)
-                            save_quick_notes(selected_project, st.session_state.quick_notes_list)
-                            st.rerun()
+                st.markdown(f"**{idx}. [{n['severity']}] {n['title']}**")
+                st.code(_format_note(n, idx), language="text")
 
         with st.expander("Copy all notes as one block", expanded=False):
             all_text = "\n\n".join(_format_note(n, i) for i, n in enumerate(notes, 1))
@@ -1445,7 +1475,7 @@ with tab_proj:
         },
     ]
 
-    project_root = BASE_DIR / "projects" / selected_project
+    project_root = Path("projects") / selected_project
 
     # ── Create new project ───────────────────────────────────────
     with st.expander("Create a new project", expanded=False):
@@ -1475,10 +1505,10 @@ with tab_proj:
             safe = "".join(c if c.isalnum() or c == "_" else "_" for c in raw).strip("_")
             if not safe:
                 st.error("Enter a valid project name.")
-            elif (BASE_DIR / "projects" / safe).exists():
+            elif (Path("projects") / safe).exists():
                 st.warning(f"Project '{safe}' already exists.")
             else:
-                new_dir = BASE_DIR / "projects" / safe
+                new_dir = Path("projects") / safe
                 new_dir.mkdir(parents=True)
                 (new_dir / "context.md").write_text(
                     f"# Project: {safe}\n\n## Scope\n\n## Out of scope\n",

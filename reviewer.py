@@ -19,10 +19,6 @@ from openai import OpenAI
 
 from utils import extract_response_json
 
-# Anchored to this file's directory so the CLI behaves the same
-# regardless of the directory it's invoked from.
-BASE_DIR = Path(__file__).resolve().parent
-
 
 # ---------------------------------------------------------------------------
 # JSON Schema — must stay in sync with both pass prompts
@@ -125,14 +121,14 @@ def read_text_file(path: Path, required: bool = True) -> str:
 
 
 def get_project_paths(project_name: str) -> Dict[str, Path]:
-    project_root = BASE_DIR / "projects" / project_name
+    project_root = Path("projects") / project_name
     return {
         "root": project_root,
         "context": project_root / "context.md",
         "glossary": project_root / "glossary.md",
         "rules": project_root / "rules.md",
         "stories": project_root / "stories",
-        "output": BASE_DIR / "outputs" / project_name,
+        "output": Path("outputs") / project_name,
     }
 
 
@@ -179,6 +175,38 @@ Confidence:
 - high   → explicitly stated in input
 - medium → clear logical inference
 - low    → avoid; omit the finding instead
+
+--------------------------------------------------
+CROSS-SECTION & COMPLETENESS CHECKS
+
+Do not only scan sentence-by-sentence for explicit "not specified" gaps.
+Actively check for these four patterns, which require reading the WHOLE
+story together, not one line at a time:
+
+1. Cross-section conflicts — does a constraint or scope statement in one
+   part of the story (e.g. "must also support X") clash with the stated
+   purpose or timing assumption in another part? A requirement can list
+   all its pieces individually and still be internally inconsistent when
+   those pieces are combined. Flag this as "contradiction", not
+   "missing_definition".
+
+2. Incomplete state coverage — for every user action or system event the
+   story describes (e.g. dismiss, retry, cancel, expire), check whether
+   the requirement defines what happens AFTER it. An action with no
+   defined resulting state is a gap even if the action itself is named.
+
+3. Requirements hidden in informal text — sections like "Notes",
+   "Context", or parenthetical asides often contain real functional
+   requirements (e.g. "should also track X for analytics"), not just
+   background color. Evaluate informal notes with the same scrutiny as
+   formal acceptance criteria — do not treat them as out of scope by
+   default.
+
+4. Delivery risk — if the story states a deadline or urgency alongside
+   unresolved open questions you identified above, raise a "risk" finding
+   about shipping with unresolved ambiguity, not just the individual gaps.
+
+--------------------------------------------------
 
 PROJECT CONTEXT:
 {project_context}
@@ -230,6 +258,13 @@ Do NOT remove findings related to:
 - authorization rules
 - UI behavior conflicts
 - testability problems
+- cross-section conflicts (a constraint in one part of the story clashing
+  with the purpose/timing assumed in another part)
+- incomplete state coverage (a named user action with no defined
+  resulting state, e.g. what happens after dismiss/retry/expire)
+- functional requirements hidden in informal Notes/Context sections
+- delivery risk from shipping with unresolved open questions under a
+  stated deadline
 
 --------------------------------------------------
 PRIORITY RULE
