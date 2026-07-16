@@ -262,7 +262,7 @@ st.set_page_config(page_title="QA Assistant", page_icon=None, layout="wide")
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -271,66 +271,66 @@ html, body, [class*="css"] {
 
 /* ── Layout ── */
 .block-container {
-    padding-top: 2.25rem;
-    padding-bottom: 4rem;
-    max-width: 1280px;
+    padding-top: 1.75rem;
+    padding-bottom: 3rem;
+    max-width: 1200px;
 }
 
 /* ── Headings ── */
 h1 {
-    font-size: 1.875rem !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.015em !important;
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
     color: #0f172a !important;
     margin-bottom: 0 !important;
 }
 h2 {
-    font-size: 1.375rem !important;
+    font-size: 1rem !important;
     font-weight: 600 !important;
-    color: #0f172a !important;
+    color: #1e293b !important;
     letter-spacing: -0.01em !important;
 }
 h3, h4 {
-    font-size: 1.125rem !important;
+    font-size: 0.875rem !important;
     font-weight: 600 !important;
-    color: #1e293b !important;
+    color: #334155 !important;
     letter-spacing: 0 !important;
 }
 
 p, li, .stMarkdown {
-    font-size: 1.0625rem !important;
-    line-height: 1.7 !important;
-    color: #1e293b;
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+    color: #334155;
 }
 
 /* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] {
     background: transparent !important;
-    border-bottom: 2px solid #cbd5e1 !important;
-    gap: 0.25rem !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    gap: 0 !important;
     padding: 0 !important;
 }
 .stTabs [data-baseweb="tab"] {
-    font-size: 1.0625rem !important;
+    font-size: 0.8125rem !important;
     font-weight: 500 !important;
-    color: #475569 !important;
-    padding: 0.875rem 1.5rem !important;
+    color: #64748b !important;
+    padding: 0.625rem 1rem !important;
     background: transparent !important;
     border: none !important;
-    border-bottom: 3px solid transparent !important;
-    margin-bottom: -2px !important;
+    border-bottom: 2px solid transparent !important;
+    margin-bottom: -1px !important;
     border-radius: 0 !important;
     letter-spacing: 0.01em;
 }
 .stTabs [data-baseweb="tab"]:hover {
-    color: #0f172a !important;
+    color: #1e293b !important;
     background: transparent !important;
 }
 .stTabs [aria-selected="true"] {
     color: #1d4ed8 !important;
     border-bottom-color: #1d4ed8 !important;
     background: transparent !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
 }
 .stTabs [data-baseweb="tab-border"] { display: none !important; }
 .stTabs [data-baseweb="tab-highlight"] { display: none !important; }
@@ -338,22 +338,22 @@ p, li, .stMarkdown {
 /* ── Buttons ── */
 div.stButton > button {
     font-family: 'Inter', sans-serif !important;
-    font-size: 1.0625rem !important;
-    font-weight: 600 !important;
-    height: 3rem !important;
-    padding: 0 1.5rem !important;
-    border-radius: 8px !important;
-    border: 1.5px solid #94a3b8 !important;
-    color: #1e293b !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    height: 2.125rem !important;
+    padding: 0 0.875rem !important;
+    border-radius: 5px !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
     background: #ffffff !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
     letter-spacing: 0.01em;
     transition: all 0.12s ease;
 }
 div.stButton > button:hover {
-    border-color: #64748b !important;
-    background: #f1f5f9 !important;
-    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    background: #f8fafc !important;
+    color: #1e293b !important;
 }
 div.stButton > button[kind="primary"],
 div.stButton > button[kind="primary"] p,
@@ -362,13 +362,13 @@ div.stButton > button[kind="primary"] div {
     background: #1d4ed8 !important;
     color: #ffffff !important;
     border-color: #1d4ed8 !important;
-    box-shadow: 0 2px 5px rgba(29,78,216,0.3) !important;
+    box-shadow: 0 1px 3px rgba(29,78,216,0.2) !important;
 }
 div.stButton > button[kind="primary"]:hover,
 div.stButton > button[kind="primary"]:hover p,
 div.stButton > button[kind="primary"]:hover span {
-    background: #1e3a8a !important;
-    border-color: #1e3a8a !important;
+    background: #1e40af !important;
+    border-color: #1e40af !important;
     color: #ffffff !important;
 }
 div.stButton > button[kind="primary"] * { color: #ffffff !important; }
@@ -376,30 +376,29 @@ div.stButton > button[kind="primary"] * { color: #ffffff !important; }
 /* ── Inputs ── */
 textarea, input[type="text"], input[type="number"], input[type="email"] {
     font-family: 'Inter', sans-serif !important;
-    font-size: 1.0625rem !important;
-    border: 1.5px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-    color: #0f172a !important;
-    padding: 0.625rem 0.875rem !important;
+    font-size: 0.875rem !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 5px !important;
+    color: #1e293b !important;
 }
 textarea:focus, input:focus {
-    border-color: #60a5fa !important;
-    box-shadow: 0 0 0 4px rgba(96,165,250,0.25) !important;
+    border-color: #93c5fd !important;
+    box-shadow: 0 0 0 3px rgba(147,197,253,0.2) !important;
 }
-textarea { line-height: 1.7 !important; }
+textarea { line-height: 1.6 !important; }
 
 /* ── Selectbox ── */
 div[data-baseweb="select"] > div {
-    font-size: 1.0625rem !important;
-    border-radius: 8px !important;
-    border: 1.5px solid #cbd5e1 !important;
+    font-size: 0.875rem !important;
+    border-radius: 5px !important;
+    border: 1px solid #e2e8f0 !important;
     font-family: 'Inter', sans-serif !important;
     background: #ffffff !important;
-    min-height: 3rem !important;
+    min-height: 2.125rem !important;
     cursor: pointer !important;
 }
 div[data-baseweb="select"] > div:hover {
-    border-color: #64748b !important;
+    border-color: #94a3b8 !important;
 }
 div[data-baseweb="select"] input {
     border: none !important;
@@ -409,33 +408,33 @@ div[data-baseweb="select"] input {
 }
 div[data-baseweb="select"] [data-testid="stSelectboxLabel"],
 div[data-baseweb="select"] span {
-    font-size: 1.0625rem !important;
-    color: #0f172a !important;
+    font-size: 0.875rem !important;
+    color: #1e293b !important;
 }
 
 /* Input labels */
 label[data-testid="stWidgetLabel"] p {
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    color: #334155 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
 }
 
 /* ── Metric ── */
 [data-testid="stMetric"] {
-    background: #f1f5f9 !important;
-    border: 1.5px solid #cbd5e1 !important;
-    border-radius: 10px !important;
-    padding: 1.25rem 1.5rem !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 0.875rem 1.125rem !important;
 }
 [data-testid="stMetricLabel"] p {
-    font-size: 0.8125rem !important;
-    font-weight: 700 !important;
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.06em !important;
-    color: #475569 !important;
+    color: #64748b !important;
 }
 [data-testid="stMetricValue"] {
-    font-size: 2.125rem !important;
+    font-size: 1.5rem !important;
     font-weight: 700 !important;
     color: #0f172a !important;
     letter-spacing: -0.02em !important;
@@ -443,77 +442,77 @@ label[data-testid="stWidgetLabel"] p {
 
 /* ── Containers ── */
 [data-testid="stVerticalBlockBorderWrapper"] > div {
-    border: 1.5px solid #cbd5e1 !important;
-    border-radius: 10px !important;
-    padding: 1.375rem !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 0.875rem !important;
     background: #ffffff !important;
 }
 
 /* ── Alerts ── */
 div[data-testid="stAlert"] {
-    border-radius: 8px !important;
-    font-size: 1rem !important;
-    padding: 1rem 1.25rem !important;
-    border-width: 1.5px !important;
+    border-radius: 5px !important;
+    font-size: 0.8125rem !important;
+    padding: 0.625rem 0.875rem !important;
+    border-width: 1px !important;
 }
-div[data-testid="stAlert"] p { font-size: 1rem !important; }
+div[data-testid="stAlert"] p { font-size: 0.8125rem !important; }
 
 /* ── Caption ── */
 [data-testid="stCaptionContainer"] p {
-    font-size: 0.9375rem !important;
-    color: #64748b !important;
+    font-size: 0.75rem !important;
+    color: #94a3b8 !important;
 }
 
 /* ── Expander ── */
 details summary {
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    color: #334155 !important;
-    padding: 0.75rem 0 !important;
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
+    padding: 0.5rem 0 !important;
 }
 details {
-    border: 1.5px solid #e2e8f0 !important;
-    border-radius: 8px !important;
-    padding: 0 1rem !important;
-    background: #f8fafc !important;
+    border: 1px solid #f1f5f9 !important;
+    border-radius: 5px !important;
+    padding: 0 0.75rem !important;
+    background: #fafafa !important;
 }
 
 /* ── Divider ── */
 hr {
     border: none !important;
-    border-top: 1.5px solid #e2e8f0 !important;
-    margin: 1.75rem 0 !important;
+    border-top: 1px solid #f1f5f9 !important;
+    margin: 1.25rem 0 !important;
 }
 
 /* ── Code blocks ── */
 pre {
-    border-radius: 8px !important;
-    font-size: 1rem !important;
-    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 5px !important;
+    font-size: 0.8125rem !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
 /* ── Success / info ── */
-.stSuccess { border-left: 4px solid #10b981 !important; }
-.stInfo    { border-left: 4px solid #3b82f6 !important; }
-.stWarning { border-left: 4px solid #f59e0b !important; }
-.stError   { border-left: 4px solid #ef4444 !important; }
+.stSuccess { border-left: 3px solid #10b981 !important; }
+.stInfo    { border-left: 3px solid #3b82f6 !important; }
+.stWarning { border-left: 3px solid #f59e0b !important; }
+.stError   { border-left: 3px solid #ef4444 !important; }
 
 /* ── Mode description ── */
 .mode-desc {
-    padding: 1.125rem 1.375rem;
-    background: #f1f5f9;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 8px;
-    margin-bottom: 1.75rem;
-    font-size: 1rem;
-    color: #334155;
-    line-height: 1.7;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    margin-bottom: 1.25rem;
+    font-size: 0.8125rem;
+    color: #475569;
+    line-height: 1.6;
 }
 
 /* ── Spinner ── */
 [data-testid="stSpinner"] p {
-    font-size: 1rem !important;
-    color: #475569 !important;
+    font-size: 0.8125rem !important;
+    color: #64748b !important;
 }
 </style>
 """, unsafe_allow_html=True)
