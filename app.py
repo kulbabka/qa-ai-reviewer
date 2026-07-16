@@ -112,10 +112,9 @@ def render_load_last_result(project_name: str, suffix: str, widget_key: str) -> 
             size_kb = path.stat().st_size / 1024
             row = st.container(border=True)
             with row:
-                name_col, load_col, del_col = st.columns([4, 1, 1])
-                with name_col:
-                    st.markdown(f"**{path.name}**")
-                    st.caption(f"{mtime} · {size_kb:.1f} KB")
+                st.markdown(f"**{path.name}**")
+                st.caption(f"{mtime} · {size_kb:.1f} KB")
+                load_col, del_col = st.columns(2)
                 with load_col:
                     load_clicked = st.button(
                         "Load", key=f"{widget_key}_load_{path.name}",

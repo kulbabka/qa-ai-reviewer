@@ -1,5 +1,6 @@
 import json
 import os
+import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -67,61 +68,77 @@ def save_ui_result(
 
 
 def list_output_files(project_name: str, suffix: str = "") -> List[Path]:
-    """List saved output JSON files for a project, newest first.
+    """List saved AI-review output JSON files for a project, newest first.
 
     If `suffix` is given (e.g. "_ux", "_ui_flow"), only files whose stem
     ends with that suffix are returned — used to separate Screen Review
     outputs (test cases vs UX findings) from Requirement Review outputs.
+
+    quick_notes.json is always excluded — it's a manual note list, not an
+    AI review result, and would never load successfully here.
     """
     output_dir = Path("outputs") / project_name
     if not output_dir.exists():
         return []
-    files = [p for p in output_dir.glob("*.json") if not suffix or p.stem.endswith(suffix)]
+    files = [
+        p for p in output_dir.glob("*.json")
+        if p.name != "quick_notes.json" and (not suffix or p.stem.endswith(suffix))
+    ]
     return sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
 
 
 def render_load_last_result(project_name: str, suffix: str, widget_key: str) -> Optional[Dict]:
-    """Render a small 'Load last result' control. Returns the loaded dict
-    (already placed into the caller's chosen session_state key by the
-    caller) or None if nothing was loaded this run.
+    """Render a 'Saved results' manager: lists every saved output for this
+    project (optionally filtered by suffix), with a Load and a Delete
+    button per item. Returns the loaded dict if the caller should apply it
+    this run, or None otherwise.
 
-    This does NOT touch session_state itself — the caller decides where
-    the loaded result goes, since different tabs store results under
-    different keys.
+    This does NOT touch session_state for the loaded content itself — the
+    caller decides where the loaded result goes, since different tabs store
+    results under different keys. Deletion is handled internally (removes
+    the file from disk and reruns).
     """
     files = list_output_files(project_name, suffix)
     if not files:
         return None
-    display_labels = [
-        f"{p.name} ({Path(p).stat().st_size} bytes)" for p in files
-    ]
-    with st.expander(f"Load a previous result ({len(files)} saved)", expanded=False):
+
+    with st.expander(f"Saved results ({len(files)})", expanded=False):
         st.caption(
-            "Recovers a result saved to disk earlier — useful if the page "
-            "reloaded, the app restarted, or the browser tab was lost."
+            "Everything saved to disk for this project. Load brings a result "
+            "back into the view above; Delete removes it permanently from disk."
         )
-        col_sel, col_btn = st.columns([3, 1])
-        with col_sel:
-            chosen = st.selectbox(
-                "Saved result",
-                display_labels,
-                key=f"{widget_key}_select",
-                label_visibility="collapsed",
-            )
-        with col_btn:
-            load_clicked = st.button(
-                "Load",
-                key=f"{widget_key}_btn",
-                use_container_width=True,
-            )
-        if load_clicked and chosen:
-            idx = display_labels.index(chosen)
-            path = files[idx]
-            try:
-                return json.loads(path.read_text(encoding="utf-8"))
-            except Exception as exc:
-                st.error(f"Could not load {path.name}: {exc}")
-                return None
+        for path in files:
+            mtime = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+            size_kb = path.stat().st_size / 1024
+            row = st.container(border=True)
+            with row:
+                name_col, load_col, del_col = st.columns([4, 1, 1])
+                with name_col:
+                    st.markdown(f"**{path.name}**")
+                    st.caption(f"{mtime} · {size_kb:.1f} KB")
+                with load_col:
+                    load_clicked = st.button(
+                        "Load", key=f"{widget_key}_load_{path.name}",
+                        use_container_width=True,
+                    )
+                with del_col:
+                    delete_clicked = st.button(
+                        "Delete", key=f"{widget_key}_del_{path.name}",
+                        use_container_width=True,
+                    )
+                if load_clicked:
+                    try:
+                        return json.loads(path.read_text(encoding="utf-8"))
+                    except Exception as exc:
+                        st.error(f"Could not load {path.name}: {exc}")
+                        return None
+                if delete_clicked:
+                    try:
+                        path.unlink()
+                        st.success(f"Deleted {path.name}")
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"Could not delete {path.name}: {exc}")
     return None
 
 
@@ -1177,6 +1194,127 @@ with tab_notes:
     if st.session_state.quick_notes_project != selected_project:
         st.session_state.quick_notes_list = load_quick_notes(selected_project)
         st.session_state.quick_notes_project = selected_project
+
+    # ── Import / Export ─────────────────────────────────────────
+    exp_col, imp_col = st.columns(2)
+
+    with exp_col:
+        if st.session_state.quick_notes_list:
+            st.download_button(
+                "Download notes (JSON)",
+                data=json.dumps(st.session_state.quick_notes_list, ensure_ascii=False, indent=2),
+                file_name=f"{selected_project}_quick_notes.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+        else:
+            st.button("Download notes (JSON)", disabled=True, use_container_width=True,
+                       help="Add at least one note first.")
+
+    with imp_col:
+        import_open = st.button("Import notes ↓", use_container_width=True, key="open_import_notes")
+
+    if import_open:
+        st.session_state["_show_import_notes"] = not st.session_state.get("_show_import_notes", False)
+
+    if st.session_state.get("_show_import_notes", False):
+        with st.container(border=True):
+            st.caption(
+                "Bring in notes prepared earlier — e.g. a findings library you drafted "
+                "with Claude before the call. Paste JSON (a list of note objects) or "
+                "plain text (one Given/When/Then-style block per note, separated by "
+                "blank lines)."
+            )
+            import_mode = st.radio(
+                "Import as",
+                ["JSON", "Plain text"],
+                horizontal=True,
+                key="import_notes_mode",
+                label_visibility="collapsed",
+            )
+            uploaded_notes_file = st.file_uploader(
+                "Or upload a .json/.txt file instead",
+                type=["json", "txt", "md"],
+                key="import_notes_file",
+            )
+            import_text = st.text_area(
+                "Paste content",
+                height=180,
+                key="import_notes_text",
+                placeholder=(
+                    '[{"title": "...", "severity": "High", "given": "...", "when": "...", '
+                    '"then_expected": "...", "actual": "...", "environment": "", "extra_notes": ""}]'
+                    if import_mode == "JSON" else
+                    "Title: Sync status shows Connected during active failure\n"
+                    "Severity: High\n"
+                    "Given: Broker is connected and syncing normally\n"
+                    "When: Broker connection drops mid-sync\n"
+                    "Then (expected): UI shows a clear 'Sync failed' state\n"
+                    "Actual: Status still shows green 'Connected'\n"
+                    "\n"
+                    "Title: Next note...\n..."
+                ),
+            )
+
+            do_import = st.button("Add these to my notes", type="primary", use_container_width=True)
+
+            if do_import:
+                raw = (uploaded_notes_file.read().decode("utf-8", errors="ignore")
+                       if uploaded_notes_file is not None else import_text)
+                if not raw.strip():
+                    st.warning("Paste some content or upload a file first.")
+                else:
+                    try:
+                        if import_mode == "JSON":
+                            parsed = json.loads(raw)
+                            if isinstance(parsed, dict):
+                                parsed = [parsed]
+                            new_notes = []
+                            for item in parsed:
+                                new_notes.append({
+                                    "title": str(item.get("title", "Untitled")),
+                                    "severity": str(item.get("severity", "Medium")),
+                                    "environment": str(item.get("environment", "")),
+                                    "given": str(item.get("given", "")),
+                                    "when": str(item.get("when", "")),
+                                    "then_expected": str(item.get("then_expected", item.get("then", ""))),
+                                    "actual": str(item.get("actual", "")),
+                                    "extra_notes": str(item.get("extra_notes", item.get("notes", ""))),
+                                })
+                        else:
+                            # Plain text: split into blocks on blank lines, parse "Label: value" lines
+                            field_map = {
+                                "title": "title", "severity": "severity", "environment": "environment",
+                                "given": "given", "when": "when",
+                                "then (expected)": "then_expected", "then": "then_expected",
+                                "actual": "actual", "notes": "extra_notes",
+                            }
+                            blocks = [b for b in raw.split("\n\n") if b.strip()]
+                            new_notes = []
+                            for block in blocks:
+                                note = {"title": "Untitled", "severity": "Medium", "environment": "",
+                                        "given": "", "when": "", "then_expected": "", "actual": "", "extra_notes": ""}
+                                for line in block.splitlines():
+                                    if ":" not in line:
+                                        continue
+                                    label, _, value = line.partition(":")
+                                    key = field_map.get(label.strip().lower())
+                                    if key:
+                                        note[key] = value.strip()
+                                if note["title"] != "Untitled" or note["given"] or note["when"]:
+                                    new_notes.append(note)
+                        if not new_notes:
+                            st.warning("Nothing recognizable to import — check the format.")
+                        else:
+                            st.session_state.quick_notes_list.extend(new_notes)
+                            save_quick_notes(selected_project, st.session_state.quick_notes_list)
+                            st.session_state["_show_import_notes"] = False
+                            st.success(f"Imported {len(new_notes)} note(s).")
+                            st.rerun()
+                    except json.JSONDecodeError as exc:
+                        st.error(f"Couldn't parse JSON: {exc}")
+                    except Exception as exc:
+                        st.error(f"Import failed: {exc}")
 
     with st.form("quick_note_form", clear_on_submit=True):
         title = st.text_input(
