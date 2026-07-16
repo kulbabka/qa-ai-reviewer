@@ -1,5 +1,6 @@
 import json
 import os
+import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -87,45 +88,57 @@ def list_output_files(project_name: str, suffix: str = "") -> List[Path]:
 
 
 def render_load_last_result(project_name: str, suffix: str, widget_key: str) -> Optional[Dict]:
-    """Render a small 'Load last result' control. Returns the loaded dict
-    (already placed into the caller's chosen session_state key by the
-    caller) or None if nothing was loaded this run.
+    """Render a 'Saved results' manager: lists every saved output for this
+    project (optionally filtered by suffix), with a Load and a Delete
+    button per item. Returns the loaded dict if the caller should apply it
+    this run, or None otherwise.
 
-    This does NOT touch session_state itself — the caller decides where
-    the loaded result goes, since different tabs store results under
-    different keys.
+    This does NOT touch session_state for the loaded content itself — the
+    caller decides where the loaded result goes, since different tabs store
+    results under different keys. Deletion is handled internally (removes
+    the file from disk and reruns).
     """
     files = list_output_files(project_name, suffix)
     if not files:
         return None
-    display_labels = [
-        f"{p.name} ({Path(p).stat().st_size} bytes)" for p in files
-    ]
-    with st.expander(f"Load a previous result ({len(files)} saved)", expanded=False):
+
+    with st.expander(f"Saved results ({len(files)})", expanded=False):
         st.caption(
-            "Pulls a result back from disk — use this if the browser tab reloaded, "
-            "the app restarted, or you're picking up work from an earlier session "
-            "and don't want to re-run the analysis."
+            "Everything saved to disk for this project. Load brings a result "
+            "back into the view above; Delete removes it permanently from disk."
         )
-        chosen = st.selectbox(
-            "Saved result",
-            display_labels,
-            key=f"{widget_key}_select",
-            label_visibility="collapsed",
-        )
-        load_clicked = st.button(
-            "Load this result",
-            key=f"{widget_key}_btn",
-            use_container_width=True,
-        )
-        if load_clicked and chosen:
-            idx = display_labels.index(chosen)
-            path = files[idx]
-            try:
-                return json.loads(path.read_text(encoding="utf-8"))
-            except Exception as exc:
-                st.error(f"Could not load {path.name}: {exc}")
-                return None
+        for path in files:
+            mtime = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+            size_kb = path.stat().st_size / 1024
+            row = st.container(border=True)
+            with row:
+                name_col, load_col, del_col = st.columns([4, 1, 1])
+                with name_col:
+                    st.markdown(f"**{path.name}**")
+                    st.caption(f"{mtime} · {size_kb:.1f} KB")
+                with load_col:
+                    load_clicked = st.button(
+                        "Load", key=f"{widget_key}_load_{path.name}",
+                        use_container_width=True,
+                    )
+                with del_col:
+                    delete_clicked = st.button(
+                        "Delete", key=f"{widget_key}_del_{path.name}",
+                        use_container_width=True,
+                    )
+                if load_clicked:
+                    try:
+                        return json.loads(path.read_text(encoding="utf-8"))
+                    except Exception as exc:
+                        st.error(f"Could not load {path.name}: {exc}")
+                        return None
+                if delete_clicked:
+                    try:
+                        path.unlink()
+                        st.success(f"Deleted {path.name}")
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"Could not delete {path.name}: {exc}")
     return None
 
 
