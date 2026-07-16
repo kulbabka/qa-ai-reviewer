@@ -19,6 +19,10 @@ from openai import OpenAI
 
 from utils import extract_response_json
 
+# Anchored to this file's directory so the CLI behaves the same
+# regardless of the directory it's invoked from.
+BASE_DIR = Path(__file__).resolve().parent
+
 
 # ---------------------------------------------------------------------------
 # JSON Schema — must stay in sync with both pass prompts
@@ -121,14 +125,14 @@ def read_text_file(path: Path, required: bool = True) -> str:
 
 
 def get_project_paths(project_name: str) -> Dict[str, Path]:
-    project_root = Path("projects") / project_name
+    project_root = BASE_DIR / "projects" / project_name
     return {
         "root": project_root,
         "context": project_root / "context.md",
         "glossary": project_root / "glossary.md",
         "rules": project_root / "rules.md",
         "stories": project_root / "stories",
-        "output": Path("outputs") / project_name,
+        "output": BASE_DIR / "outputs" / project_name,
     }
 
 

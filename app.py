@@ -16,25 +16,32 @@ from url_fetcher import fetch_urls, results_to_context
 
 load_dotenv()
 
+# All project/output paths are anchored to this file's own directory,
+# not to the current working directory — otherwise "outputs/" and
+# "projects/" can end up created wherever the process happened to be
+# launched from (a different cwd via an IDE run config, a launcher
+# script, Docker, etc.), which is why they can seem to "go missing".
+BASE_DIR = Path(__file__).resolve().parent
+
 
 # ── Project helpers ──────────────────────────────────────────────
 
 def get_project_dirs() -> List[str]:
-    projects_root = Path("projects")
+    projects_root = BASE_DIR / "projects"
     if not projects_root.exists():
         return []
     return sorted([p.name for p in projects_root.iterdir() if p.is_dir()])
 
 
 def get_project_paths(project_name: str) -> Dict[str, Path]:
-    project_root = Path("projects") / project_name
+    project_root = BASE_DIR / "projects" / project_name
     return {
         "root": project_root,
         "context": project_root / "context.md",
         "glossary": project_root / "glossary.md",
         "rules": project_root / "rules.md",
         "stories": project_root / "stories",
-        "output": Path("outputs") / project_name,
+        "output": BASE_DIR / "outputs" / project_name,
     }
 
 
@@ -53,7 +60,7 @@ def load_project_context(project_name: str) -> Dict[str, str]:
 def save_ui_result(
     project_name: str, item_name: str, result: Dict, suffix: str = ""
 ) -> Path:
-    output_dir = Path("outputs") / project_name
+    output_dir = BASE_DIR / "outputs" / project_name
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_name = "".join(
         c if c.isalnum() or c in ("-", "_") else "_" for c in item_name
@@ -73,7 +80,7 @@ def list_output_files(project_name: str, suffix: str = "") -> List[Path]:
     ends with that suffix are returned — used to separate Screen Review
     outputs (test cases vs UX findings) from Requirement Review outputs.
     """
-    output_dir = Path("outputs") / project_name
+    output_dir = BASE_DIR / "outputs" / project_name
     if not output_dir.exists():
         return []
     files = [p for p in output_dir.glob("*.json") if not suffix or p.stem.endswith(suffix)]
@@ -126,7 +133,7 @@ def render_load_last_result(project_name: str, suffix: str, widget_key: str) -> 
 
 
 def get_quick_notes_path(project_name: str) -> Path:
-    return Path("outputs") / project_name / "quick_notes.json"
+    return BASE_DIR / "outputs" / project_name / "quick_notes.json"
 
 
 def load_quick_notes(project_name: str) -> List[Dict]:
@@ -1417,7 +1424,7 @@ with tab_proj:
         },
     ]
 
-    project_root = Path("projects") / selected_project
+    project_root = BASE_DIR / "projects" / selected_project
 
     # ── Create new project ───────────────────────────────────────
     with st.expander("Create a new project", expanded=False):
@@ -1447,10 +1454,10 @@ with tab_proj:
             safe = "".join(c if c.isalnum() or c == "_" else "_" for c in raw).strip("_")
             if not safe:
                 st.error("Enter a valid project name.")
-            elif (Path("projects") / safe).exists():
+            elif (BASE_DIR / "projects" / safe).exists():
                 st.warning(f"Project '{safe}' already exists.")
             else:
-                new_dir = Path("projects") / safe
+                new_dir = BASE_DIR / "projects" / safe
                 new_dir.mkdir(parents=True)
                 (new_dir / "context.md").write_text(
                     f"# Project: {safe}\n\n## Scope\n\n## Out of scope\n",
