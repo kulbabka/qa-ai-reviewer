@@ -187,6 +187,17 @@ SEVERITY
 - medium   → causes inconvenience, requires a workaround, or creates uncertainty
 - low      → minor UX friction or a nice-to-have improvement
 
+Severity anchors — calibrate against these reference points, don't rate in
+isolation:
+- Reserve "critical" for loss or corruption of CORE trading records — the
+  trade itself (entry/exit, P&L, executions) or irreversible destructive
+  actions with no confirmation. Losing a secondary artifact (a note, a tag,
+  a label) is unpleasant but is usually "high" at most, not "critical" —
+  it doesn't compromise the user's actual trading data.
+- A missing confirmation before an irreversible action on core trade data
+  outranks a missing confirmation on a secondary annotation, even though
+  both are technically "missing_feedback".
+
 ---
 RULES
 
@@ -198,6 +209,14 @@ Evidence priority (use the best source available):
 
 Do NOT raise generic UX best-practice issues unless directly supported by evidence.
 Do NOT invent issues not grounded in the provided input.
+
+Coverage check — before finalizing, mentally list every distinct interactive
+control or element named in the feature description and observed facts
+(buttons, sliders, toggles, playback/speed controls, etc.). For each one,
+either raise a finding about it or consciously confirm it has no issue.
+Do not silently skip a named control just because it's harder to reason
+about than the others — an unexamined control is a coverage gap, not a
+sign it's fine.
 
 Documentation-specific guidance:
 - Use documentation to identify cases where the UI does not communicate
@@ -215,8 +234,14 @@ Review rules guidance:
   issue of another kind.
 
 Confidence:
-- high   → directly visible in observations or explicitly documented
-- medium → reasonable inference from observations + context
+- high   → the underlying fact is explicitly stated in the feature
+           description or observed UI facts — NOT a judgment call. If the
+           input text directly says a behavior happens, the finding about
+           that behavior is "high" confidence even if you're layering your
+           own interpretation on top for severity/impact. Don't default to
+           "medium" out of general caution when the fact itself is given.
+- medium → the underlying fact is a reasonable inference from context/
+           product docs, not stated directly in this specific input
 - low    → avoid; omit the finding
 
 Volume:
@@ -292,6 +317,21 @@ TASKS
 7. Re-check findings against REVIEW RULES / PRIORITIES below — drop findings
    that only match a deprioritized category, and make sure the surviving
    findings emphasize the prioritized categories.
+8. Recalibrate confidence: for each finding, check whether its underlying
+   fact is explicitly stated in FEATURE DESCRIPTION or OBSERVED UI FACTS
+   below. If it is, confidence must be "high" — fix any finding that was
+   marked "medium" for a fact that's actually stated directly in the input.
+9. Recalibrate severity: "critical" is reserved for loss/corruption of core
+   trade records (entry/exit, P&L, executions) or irreversible destructive
+   actions on that core data with no confirmation. If a finding is about a
+   secondary artifact (a note, a tag, a label) losing critical severity is
+   likely too high — downgrade to "high" unless there's a specific reason
+   core trade data is also at risk.
+10. Coverage check: scan FEATURE DESCRIPTION and OBSERVED UI FACTS for any
+    named interactive control (button, slider, toggle, playback/speed
+    control, etc.) that has zero findings referencing it. If you find one
+    and there's a plausible UX question about it grounded in the input,
+    add a finding — don't let it go unexamined just because pass 1 missed it.
 
 ---
 CRITICAL PRESERVATION
